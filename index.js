@@ -1,80 +1,30 @@
-document.addEventListener('DOMContentLoaded', () => {
-  const button = document.querySelector('button')
-  const input = document.querySelector('input')
+document.addEventListener('DOMContentLoaded', function() {
+  const button = document.getElementById('fetch-alerts');
+  const input = document.getElementById('state-input');
+  const alertsDisplay = document.getElementById('alerts-display');
+  const errorMessage = document.getElementById('error-message');
 
-  button.addEventListener('click', () => {
-    const state = input.value.trim()
-    if (state) {
-      fetchWeatherAlerts(state)
-    }
-  })
-})
+  button.addEventListener('click', async function() {
+    const state = input.value;
+    input.value = '';
+    alertsDisplay.innerHTML = '';
+    errorMessage.innerHTML = '';
+    errorMessage.classList.add('hidden');
 
-async function fetchWeatherAlerts(state) {
-  const STATE_ABBR = state.toUpperCase()
-  clearError()
+try {
+  const response = await fetch('https://api.weather.gov/alerts/active?area=' + state);
+  const data = await response.json();
 
-  try {
-    const response = await fetch(https://api.weather.gov/alerts/active?area=${STATE_ABBR})
-    const data = await response.json()
-    console.log(data)
-    displayAlerts(data)
-    clearInput()
-  } catch (error) {
-    console.error('Error fetching weather alerts:', error)
-    displayError(error.message)
-  }
+  alertsDisplay.innerHTML = '<p>' + data.title + ': ' + data.features.length + '</p>';
+
+  data.features.forEach(function(feature) {
+    const p = document.createElement('p');
+    p.textContent = feature.properties.headline;
+    alertsDisplay.appendChild(p);
+  });
+} catch(error) {
+  errorMessage.textContent = 'Error: ' + error.message;
+  errorMessage.classList.remove('hidden');
 }
-
-function displayAlerts(data) {
-  const alertsContainer = document.getElementById('alerts-display')
-
-  if (!alertsContainer) return
-
-  alertsContainer.innerHTML = ''
-
-  const features = data.features || []
-  const title = data.title || 'Weather Alerts'
-
-  const summary = document.createElement('h2')
-  summary.textContent = ${title}: ${features.length}
-  alertsContainer.appendChild(summary)
-
-  if (features.length > 0) {
-    const alertsList = document.createElement('ul')
-    features.forEach(alert => {
-      const headline = alert.properties?.headline || 'No headline available'
-      const listItem = document.createElement('li')
-      listItem.textContent = headline
-      alertsList.appendChild(listItem)
-    })
-    alertsContainer.appendChild(alertsList)
-  } else {
-    const noAlerts = document.createElement('p')
-    noAlerts.textContent = 'No active alerts for this area.'
-    alertsContainer.appendChild(noAlerts)
-  }
-}
-
-function displayError(message) {
-  const errorDiv = document.getElementById('error-message')
-  if (errorDiv) {
-    errorDiv.textContent = message
-    errorDiv.classList.remove('hidden')
-  }
-}
-
-function clearError() {
-  const errorDiv = document.getElementById('error-message')
-  if (errorDiv) {
-    errorDiv.textContent = ''
-    errorDiv.classList.add('hidden')
-  }
-}
-
-function clearInput() {
-  const inputField = document.querySelector('input')
-  if (inputField) {
-    inputField.value = ''
-  }
-}
+  });
+});
